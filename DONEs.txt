@@ -1,0 +1,80 @@
+_ install d'une vagrant et ses provisions
+    sudo systemctl restart apache2
+
+_ depuis la doc symfo section setup, on voit : 
+composer create-project symfony/website-skeleton project-name
+donc on tape depuis la racine du site (comme ça il ne crée pas un sous-dossier du nom du projet) : 
+Ne pas oublier d'effacer le contenu du dossier app avant !!
+    composer create-project symfony/website-skeleton ./
+
+_ il nous demande de nous occuper de git :
+donc creation d'un repo chez github, puis :
+    git init
+    git add .
+    git config --global user.name "Circus-Pygargus"
+    git config --global user.email "richard.meuret@laposte.net"
+    git commit -m "install project"
+    git remote add origin https://github.com/Circus-Pygargus/gestion-clients.git
+    git push -u origin master
+
+_ Apache doit pointer vers le dossier public :
+    sudo nano /etc/apache2/sites-enabled/000-default.conf
+changer la ligne 
+DocumentRoot /var/www/html 
+pour avoir 
+DocumentRoot /var/www/html/public
+CTRL + o
+Entrée
+CTRL + x
+redemarrer apache avec
+    sudo service apache2 restart
+d'après le réglage fait dans le vagrant file, j'ai maintenant un résultat à la page : 10.0.0.115
+
+_ pour les routes :
+taper dans google : symphony route et aller dans la doc symfo
+pour avoir des routes, il faudrait installer :  composer require annotations
+pour les routes on pourrait utiliser et décommenter ce qui est dans le fichier config/routes.yaml
+mais on ne va pas faire comme ça ... on va coller nos routes dans les controllers (en commentaires)
+donc :
+en ssh, dans /var/www/html , taper :
+    composer require annotations
+
+Création du fichier src/Controller/DefaultController.php en prenant le code présent sur la page des routes de la doc.
+    <?php
+    namespace App\Controller;
+    use Symfony\Component\HttpFoundation\Response;
+    use Symfony\Component\Routing\Annotation\Route;
+    class DefaultController
+    {
+        /**
+         * @Route("/", name="index")
+         */
+        public function index()
+        {
+            return new Response(
+                '<html><body>Page d\'index</body></html>'
+            );
+    }
+
+Ajout d'une deuxième méthode et route "/about", test dans le navigateur : not found !
+Il faut ajouter un .htaccess : recherche google de symfony htaccess : résultat il faut taper dans le terminal :
+    composer require symfony/apache-pack
+le fichier .htaccess est créé, on ne le modifie pas !
+
+Maintenant la deuxième route de test (/about) fonctionne =)
+je peux donc effacer la méthode about du DefaultController, c'était juste pour tester les multiples redirections.
+
+Ajout de twig (il était dans les script pour vagrant mais avec la version 2.0 ...)
+    composer require "twig/twig:^3.0"
+il en a profité pour créer le fichier base.html.twig
+
+Mise en place de la page 404 :
+création du fichier bundles/twigBundle/exception/error404.html.twig
+pour vérifier qu'elle fonctionne, il faut passer en mode production :
+dans le fichier .env :
+modif de la ligne APP_ENV=dev en APP_ENV=prod
+comme ça marche pas encore, en ssh :
+    php bin/console cache:clear --env=prod --no-debug
+ok la page est visible, on repasse donc en dev dans le fichier .env et on colle dans le terminal :
+    php bin/console cache:clear --env=env --no-debug
+
