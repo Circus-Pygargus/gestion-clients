@@ -63,6 +63,7 @@ le fichier .htaccess est créé, on ne le modifie pas !
 
 Maintenant la deuxième route de test (/about) fonctionne =)
 je peux donc effacer la méthode about du DefaultController, c'était juste pour tester les multiples redirections.
+Voir ligne 132 pour la création de controller ;)
 
 Ajout de twig (il était dans les script pour vagrant mais avec la version 2.0 ...)
     composer require "twig/twig:^3.0"
@@ -75,6 +76,73 @@ dans le fichier .env :
 modif de la ligne APP_ENV=dev en APP_ENV=prod
 comme ça marche pas encore, en ssh :
     php bin/console cache:clear --env=prod --no-debug
-ok la page est visible, on repasse donc en dev dans le fichier .env et on colle dans le terminal :
+ok la page est visible, on repasse donc en dev dans le fichier .env et on colle en ssh :
     php bin/console cache:clear --env=env --no-debug
 
+
+
+Install de webpack : 
+google de symfony webpack, il nous donne la méthode d'install de webpack encore :
+    composer require symfony/webpack-encore-bundle
+puis (--no-bin-links car sous vagrant)
+    yarn install --no-bin-links
+L'install de encore a également créé :
+app/assets/css/app.css et app/assets/js/app/js
+
+on veut pouvoir faire un yarn run dev, pour cela il nous faut quelques modifs :
+dans package.json, on change les lignes :
+    "scripts": {
+        "dev-server": "encore dev-server",
+        "dev": "encore dev",
+        "watch": "encore dev --watch",
+        "build": "encore production --progress"
+    }
+par les chemins :
+    "scripts": {
+        "dev-server": "./node_modules/@symfony/webpack-encore/bin/encore.js dev-server",
+        "dev": "./node_modules/@symfony/webpack-encore/bin/encore.js dev",
+        "watch": "./node_modules/@symfony/webpack-encore/bin/encore.js dev --watch",
+        "build": "./node_modules/@symfony/webpack-encore/bin/encore.js production --progress"
+    }
+puis un
+    yarn run dev
+compile et envoie les fichiers dans public/build
+
+Création du template index.html.twig :
+dans le block css :
+    <link rel="stylesheet" href="{{ asset('build/app.css')}}">
+dans le block scripts : (pour connaitre l'entrée à donner (ici 'app'), il suffit d'aller voir dans webpack.config.js
+    {{ encore_entry_script_tags('app')}}
+
+ajout de la compilation de scss :
+dans webpack.config.js : (comme on est avec webpack encore, pas besoin d'un require du scss dans le js, ici plutôt : )
+on ajoute la ligne :
+    .addStyleEntry('appCss', './assets/scss/app.scss')
+ici pas de , entre deux lignes de .addEntry
+Pour que la compile fonctionne, on décommente aussi la ligne :
+    .enableSassLoader()
+Me manquait encore sassLoader, donc : (donné par le terminal)
+    yarn add sass-loader@^7.0.1 node-sass --dev --no-bin-links
+j'en ai profité pour commenter cette ligne dans app.js :
+    import '../css/app.css';
+modif dans webpack config de app en appJs : 
+    .addEntry('appJs', './assets/js/app.js')
+    modif également dans index.html.twig des appels de css et de js avec les tag : appCss et appJs
+
+pour revenir sur le controller, car on, utilise pas encore de template. Depuis la doc Symfo sur les controllers, on nous propose dans la section Generating Controllers, d'installer Symfony Maker :
+    composer require symfony/maker-bundle --dev
+il ne reste qu'a créer le controller :
+    php bin/console make:controller HomeController
+il crée donc HomeController.php ainsi que son template home/index.html.twig
+
+Dans ce template créé, on ajoute
+    {% block stylesheets %}
+        {{ encore_entry_link_tags('appCss') }}
+    {% endblock %}
+ainsi que 
+    {% block javascripts %}
+        {{ encore_entry_script_tags('appJs')}}    
+    {% endblock %}
+vérif navigateur sur localhost:8080/home  
+tout est ok, on va supprimer le DefaultController et modifier la route dans HomeController par '/'. Ce sera donc notre page d'accueil maintenant =)
+petite vérif ... nickel tout va bien =)
