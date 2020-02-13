@@ -146,3 +146,60 @@ ainsi que
 vérif navigateur sur localhost:8080/home  
 tout est ok, on va supprimer le DefaultController et modifier la route dans HomeController par '/'. Ce sera donc notre page d'accueil maintenant =)
 petite vérif ... nickel tout va bien =)
+
+
+On veut installer un formulaire de connexion :
+d'après la doc : https://symfony.com/doc/current/security.html
+en ssh :
+install du bundle de sécu
+    composer require symfony/security-bundle
+création de la classe User à partir du makerbundle :
+    php bin/console make:user
+        réponses aux questions :
+        entrée pour User
+        entrée pour yes store in db
+        username pour le display name of user
+        entrée pour need hash/check passwords
+il a crée src/Entity/User.php et src/repository/UserRepository
+bizarement le fichier config/packages/security.yalm n'existe pas, j'ai donc un message me disant de le modifier manuellement ! je le crée et y colle :
+    security:
+        encoders:
+            App\Entity\User:
+                algorithm: auto
+
+        # https://symfony.com/doc/current/security.html#where-do-users-come-from-user-providers
+        providers:
+            # used to reload user from session & other features (e.g. switch_user)
+            app_user_provider:
+                entity:
+                    class: App\Entity\User
+                    property: username
+Je souhaite ajouter l'email à la classe User :
+    php bin/console make:entity
+        réponses aux questions :
+        User pour le nom de la classe à modifier
+        email pour la nouvelle propriété de classe
+        entrée car c'est un string
+        entrée pour 255 en taille
+        entrée pour ne peut pas étre null en bdd
+        entrée pour ne pas ajouter de nouvelle propriété et stop là
+
+
+on veut maintenant créer la table user en bdd :
+il faut installer doctrine : (on a déjà le maker-bundle)
+    composer require sumfony/orm-pack
+
+il faut déjà modifier le fichier .env avec la ligne :
+    DATABASE_URL=mysql://db_user:db_password@127.0.0.1:3306/db_name?serverVersion=5.7
+pour 
+    DATABASE_URL=mysql://root:online@2017@127.0.0.1:3306/gestion-clients?serverVersion=5.7
+
+mise ne place de la bdd :
+    php bin/console doctrine:database:create
+
+on peut maintenant créer la table user :
+    php bin/console make:migration
+    php bin/console doctrine:migration:migrate
+    y pour accepter
+tite vérif via phpmyadmin : c'est ok la table User est bien là !
+
